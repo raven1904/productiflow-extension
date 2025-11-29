@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>ProductiFlow</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>ProductiFlow</h1>
+      <div class="stats">
+        <span id="streak">🔥 0</span>
+        <span id="points">⭐ 0</span>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="pomodoro">Pomodoro</button>
+      <button class="tab-btn" data-tab="tasks">Tasks</button>
+      <button class="tab-btn" data-tab="analytics">Analytics</button>
+    </nav>
+
+    <!-- Pomodoro Tab -->
+    <div id="pomodoro" class="tab-content active">
+      <div class="timer-container">
+        <div class="timer-display work-mode">
+          <span id="minutes">25</span>:<span id="seconds">00</span>
+        </div>
+        <div class="session-type" id="sessionType">Focus Time 🎯</div>
+        <div class="timer-controls">
+          <button id="startTimer">Start Focus</button>
+          <button id="startBreak">Start Break</button>
+          <button id="pauseTimer">Pause</button>
+          <button id="resetTimer">Reset</button>
+        </div>
+        <div class="timer-settings">
+          <label>Work: <input type="number" id="workTime" value="25" min="1"> min</label>
+          <label>Break: <input type="number" id="breakTime" value="5" min="1"> min</label>
+        </div>
+        <div class="session-info">
+          <p>Completed Sessions: <span id="sessionCount">0</span></p>
+          <p>Focus Time Today: <span id="focusToday">0h 0m</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks Tab -->
+    <div id="tasks" class="tab-content">
+      <div class="task-input">
+        <input type="text" id="taskInput" placeholder="Add a new task...">
+        <select id="prioritySelect">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <input type="datetime-local" id="dueDate">
+        <button id="addTask">Add</button>
+      </div>
+      <div class="task-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="completed">Completed</button>
+      </div>
+      <div id="taskList" class="task-list"></div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div id="analytics" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Today</h3>
+          <p class="stat-value" id="todayFocus">0h 0m</p>
+        </div>
+        <div class="stat-card">
+          <h3>This Week</h3>
+          <p class="stat-value" id="weekFocus">0h 0m</p>
+        </div>
+        <div class="stat-card">
+          <h3>Productivity</h3>
+          <p class="stat-value" id="productivityScore">0%</p>
+        </div>
+      </div>
+      <div class="achievements">
+        <h3>Achievements</h3>
+        <div id="achievementsList"></div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+
+</html>
