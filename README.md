@@ -30,20 +30,6 @@
 3. **Analytics**: View your focus time and productivity stats
 4. **Achievements**: Unlock rewards as you build productive habits
 
-## Project Structure
-productiflow-extension/
-├── manifest.json # Extension configuration
-├── popup.html # Main extension interface
-├── popup.css # Styling and animations
-├── popup.js # Main functionality
-├── background.js # Background timer service
-├── icons/ # Extension icons
-│ ├── icon16.png
-│ ├── icon48.png
-│ └── icon128.png
-├── README.md # This file
-└── privacy_policy.html # Privacy policy
-
 ## Development
 
 This extension uses:
