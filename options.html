@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ProductiFlow Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="logo">
+        <h1>ProductiFlow</h1>
+        <span class="version">v1.0.1</span>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-tab="profile">
+          <span class="icon">👤</span> Profile
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <span class="icon">⚙️</span> Settings
+        </button>
+        <button class="nav-btn" data-tab="about">
+          <span class="icon">ℹ️</span> About
+        </button>
+      </nav>
+    </div>
+
+    <main class="content">
+      <!-- Profile Tab -->
+      <div id="profile" class="tab-pane active">
+        <header>
+          <h2>My Profile</h2>
+        </header>
+        
+        <div class="profile-card">
+          <div class="avatar-circle">
+            <span id="avatarInitials">usr</span>
+          </div>
+          <div class="profile-info">
+            <div class="input-group">
+              <label>Display Name</label>
+              <input type="text" id="userName" placeholder="Enter your name">
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-overview">
+          <div class="stat-box">
+            <div class="stat-number" id="totalFocusTime">0h</div>
+            <div class="stat-label">Total Focus</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number" id="currentStreak">0</div>
+            <div class="stat-label">Day Streak</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number" id="dailyGoalDisplay">4h</div>
+            <div class="stat-label">Daily Goal</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings" class="tab-pane">
+        <header>
+          <h2>Settings</h2>
+        </header>
+
+        <section class="settings-group">
+          <h3>⏱️ Timer Configuration</h3>
+          <div class="setting-item">
+            <label>Focus Duration (min)</label>
+            <input type="number" id="workTime" min="1" max="60">
+          </div>
+          <div class="setting-item">
+            <label>Short Break (min)</label>
+            <input type="number" id="breakTime" min="1" max="15">
+          </div>
+          <div class="setting-item">
+            <label>Long Break (min)</label>
+            <input type="number" id="longBreakTime" min="5" max="45">
+          </div>
+          <div class="setting-item">
+            <label>Sessions before Long Break</label>
+            <input type="number" id="sessionsBeforeLongBreak" min="1" max="10">
+          </div>
+          <div class="setting-item">
+            <label>Daily Goal</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display:flex; flex-direction: column;">
+                 <input type="number" id="dailyGoalHours" min="0" max="24" style="width: 70px;">
+                 <small style="color:var(--text-muted); font-size:0.7rem;">Hours</small>
+              </div>
+              <span style="font-weight:bold;">:</span>
+              <div style="display:flex; flex-direction: column;">
+                 <input type="number" id="dailyGoalMinutes" min="0" max="59" style="width: 70px;">
+                 <small style="color:var(--text-muted); font-size:0.7rem;">Mins</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3>⚡ Behavior</h3>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="autoStartBreaks">
+              <span class="text">Auto-start Breaks</span>
+            </label>
+            <p class="description">Timer starts immediately when focus session ends</p>
+          </div>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="autoStartNextSession">
+              <span class="text">Auto-start Work</span>
+            </label>
+            <p class="description">Timer starts immediately when break ends</p>
+          </div>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="sound">
+              <span class="text">Sound Effects</span>
+            </label>
+            <p class="description">Play chimes for timer updates</p>
+          </div>
+          <div class="setting-item checkbox">
+            <label>
+              <input type="checkbox" id="focusProtection">
+              <span class="text">Focus Mode (Block Sites)</span>
+            </label>
+            <p class="description">Block social media during focus sessions</p>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3>🎨 Appearance</h3>
+          <div class="theme-selector">
+            <div class="theme-option" data-theme="rose">
+              <div class="color-preview" style="background: #D88C9A;"></div>
+              <span>Rose (Default)</span>
+            </div>
+            <div class="theme-option" data-theme="ocean">
+              <div class="color-preview" style="background: #4EA5D9;"></div>
+              <span>Ocean</span>
+            </div>
+            <div class="theme-option" data-theme="dark">
+              <div class="color-preview" style="background: #2C3E50;"></div>
+              <span>Midnight</span>
+            </div>
+            <div class="theme-option" data-theme="forest">
+               <div class="color-preview" style="background: #2D6A4F;"></div>
+               <span>Forest</span>
+             </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- About Tab -->
+      <div id="about" class="tab-pane">
+        <header>
+          <h2>About ProductiFlow</h2>
+        </header>
+        <div class="about-content">
+          <p>ProductiFlow is designed to help you maintain focus and manage energy.</p>
+          <p>Version: 1.0.1</p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

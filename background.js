@@ -1,4 +1,5 @@
 // Background service worker with proper error handling
+// Background service worker with proper error handling
 class BackgroundTimer {
   constructor() {
     this.currentTimer = null;
@@ -25,7 +26,10 @@ class BackgroundTimer {
       workTime: 25,
       breakTime: 5,
       longBreakTime: 15,
-      sessionsBeforeLongBreak: 4
+      sessionsBeforeLongBreak: 4,
+      autoStartBreaks: true,
+      autoStartNextSession: false,
+      focusProtection: true
     };
   }
 
@@ -33,15 +37,22 @@ class BackgroundTimer {
     try {
       const data = await chrome.storage.local.get(['timerState']);
       if (data.timerState) {
-        this.timeLeft = data.timerState.timeLeft;
-        this.isRunning = data.timerState.isRunning;
-        this.isBreak = data.timerState.isBreak;
+        this.timeLeft = data.timerState.timeLeft || this.settings.workTime * 60;
+        this.isRunning = data.timerState.isRunning || false;
+        this.isBreak = data.timerState.isBreak || false;
         this.sessionCount = data.timerState.sessionCount || 0;
+        this.endTime = data.timerState.endTime || null;
 
         // Validate and correct timer state
         if (this.timeLeft < 0) this.timeLeft = this.settings.workTime * 60;
         if (this.isRunning) {
-          this.startBackgroundTimer();
+          // Verify if expired while closed
+          if (this.endTime && Date.now() > this.endTime) {
+            this.timeLeft = 0;
+            this.completeSession();
+          } else {
+            this.startBackgroundTimer();
+          }
         }
       }
     } catch (error) {
@@ -49,9 +60,26 @@ class BackgroundTimer {
     }
   }
 
+  async saveTimerState() {
+    try {
+      await chrome.storage.local.set({
+        timerState: {
+          timeLeft: this.timeLeft,
+          isRunning: this.isRunning,
+          isBreak: this.isBreak,
+          sessionCount: this.sessionCount,
+          endTime: this.endTime,
+          lastUpdated: Date.now()
+        }
+      });
+    } catch (error) {
+      console.log('Error saving timer state:', error);
+    }
+  }
+
   setupMessageListeners() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      console.log('Background received:', request.type, 'from:', sender);
+      // console.log('Background received:', request.type, 'from:', sender.id);
 
       // Handle different message types
       switch (request.type) {
@@ -83,7 +111,18 @@ class BackgroundTimer {
           if (request.settings) {
             this.settings = request.settings;
             chrome.storage.local.set({ settings: this.settings });
+
+            // If timer isn't running, reset to new work time
+            if (!this.isRunning) {
+              this.timeLeft = this.settings.workTime * 60;
+              this.broadcastTimerStateSafe();
+            }
           }
+          sendResponse({ success: true });
+          break;
+
+        case 'playAudio':
+        // Audio removed
           sendResponse({ success: true });
           break;
 
@@ -96,7 +135,7 @@ class BackgroundTimer {
   }
 
   setupAlarms() {
-    // Daily streak check
+    // Daily streak check - runs every 60 minutes
     chrome.alarms.create('dailyStreakCheck', { periodInMinutes: 60 });
 
     chrome.alarms.onAlarm.addListener((alarm) => {
@@ -110,27 +149,40 @@ class BackgroundTimer {
     console.log('Starting focus timer');
     this.isRunning = true;
     this.isBreak = false;
-    this.timeLeft = this.settings.workTime * 60;
+    this.enableFocusProtection();
+    // Audio removed
+
+    const now = Date.now();
+    this.endTime = now + (this.settings.workTime * 60 * 1000);
+
     this.startBackgroundTimer();
     this.saveTimerState();
-    this.broadcastTimerStateSafe(); // FIXED: Changed from broadcastTimerState
+    this.broadcastTimerStateSafe();
   }
 
   startBreak(breakTime) {
-    console.log('Starting break timer');
+    console.log('Starting break timer with', breakTime, 'minutes');
     this.isRunning = true;
     this.isBreak = true;
     this.timeLeft = breakTime * 60;
+
+    this.disableFocusProtection();
+    // Audio removed
+
+    const now = Date.now();
+    this.endTime = now + (breakTime * 60 * 1000);
+
     this.startBackgroundTimer();
     this.saveTimerState();
-    this.broadcastTimerStateSafe(); // FIXED: Changed from broadcastTimerState
+    this.broadcastTimerStateSafe();
   }
 
   pauseTimer() {
     console.log('Pausing timer');
     this.isRunning = false;
+    this.disableFocusProtection();
     this.saveTimerState();
-    this.broadcastTimerStateSafe(); // FIXED: Changed from broadcastTimerState
+    this.broadcastTimerStateSafe();
   }
 
   resetTimer() {
@@ -138,8 +190,9 @@ class BackgroundTimer {
     this.isRunning = false;
     this.isBreak = false;
     this.timeLeft = this.settings.workTime * 60;
+    this.disableFocusProtection();
     this.saveTimerState();
-    this.broadcastTimerStateSafe(); // FIXED: Changed from broadcastTimerState
+    this.broadcastTimerStateSafe();
   }
 
   startBackgroundTimer() {
@@ -151,11 +204,14 @@ class BackgroundTimer {
 
     // Start new timer
     this.currentTimer = setInterval(() => {
-      if (this.isRunning) {
-        this.timeLeft--;
+      if (this.isRunning && this.endTime) {
+        const now = Date.now();
+        const remaining = Math.ceil((this.endTime - now) / 1000);
+        this.timeLeft = remaining > 0 ? remaining : 0;
+
         this.saveTimerState();
 
-        // Only broadcast if popup might be open (reduce errors)
+        // Only broadcast if popup might be open
         this.broadcastTimerStateSafe();
 
         if (this.timeLeft <= 0) {
@@ -174,24 +230,55 @@ class BackgroundTimer {
   completeSession() {
     console.log('Session completed');
     this.isRunning = false;
-    const sessionDuration = this.isBreak ? this.settings.breakTime : this.settings.workTime;
+    // Audio removed
+
+    // Calculate actual session duration (in minutes)
+    const sessionDuration = this.isBreak
+      ? (this.isBreak ? (this.timeLeft + this.getSessionDuration()) / 60 : this.settings.breakTime)
+      : this.settings.workTime;
 
     if (!this.isBreak) {
       this.sessionCount++;
       this.recordFocusTime(sessionDuration);
+      this.disableFocusProtection(); // Break starting or session ended
     }
 
-    this.saveTimerState();
-    this.broadcastTimerStateSafe();
-
-    // Show notification (this always works)
+    // Show notification
     this.showNotification(
       this.isBreak ? '⏰ Break Complete!' : '🎉 Focus Session Complete!',
       this.isBreak ? 'Break time is over!' : 'Great work! Time for a break.'
     );
 
-    // Broadcast completion safely
+    // Broadcast completion (UI handles points/awards)
     this.broadcastSessionCompleteSafe(sessionDuration);
+
+    // Auto-Advance Logic
+    if (!this.isBreak) {
+      // Work session ended. Check if we should auto-start break.
+      if (this.settings.autoStartBreaks) {
+        const breakTime = (this.sessionCount % this.settings.sessionsBeforeLongBreak === 0 && this.sessionCount > 0)
+          ? this.settings.longBreakTime
+          : this.settings.breakTime;
+        this.startBreak(breakTime);
+      } else {
+        // Just save state as stopped
+        this.saveTimerState();
+        this.broadcastTimerStateSafe();
+      }
+    } else {
+      // Break session ended. Check if we should auto-start work.
+      if (this.settings.autoStartNextSession) {
+        this.startTimer();
+      } else {
+        // Just save state as stopped
+        this.saveTimerState();
+        this.broadcastTimerStateSafe();
+      }
+    }
+  }
+
+  getSessionDuration() {
+    return this.isBreak ? this.settings.breakTime : this.settings.workTime;
   }
 
   // SAFE broadcasting methods that don't throw errors
@@ -202,7 +289,6 @@ class BackgroundTimer {
       ...state
     }).catch(() => {
       // This is NORMAL - popup is closed, no one to receive the message
-      // We don't log this to avoid console spam
     });
   }
 
@@ -210,7 +296,8 @@ class BackgroundTimer {
     chrome.runtime.sendMessage({
       type: 'sessionComplete',
       duration: duration,
-      isBreak: this.isBreak
+      isBreak: this.isBreak,
+      sessionCount: this.sessionCount
     }).catch(() => {
       // Normal - popup is closed
     });
@@ -221,7 +308,8 @@ class BackgroundTimer {
       timeLeft: this.timeLeft,
       isRunning: this.isRunning,
       isBreak: this.isBreak,
-      sessionCount: this.sessionCount
+      sessionCount: this.sessionCount,
+      settings: this.settings
     };
   }
 
@@ -247,13 +335,13 @@ class BackgroundTimer {
       const stats = data.stats || {
         focusTime: {},
         streak: 0,
-        points: 0,
-        completedTasks: 0,
-        completedSessions: 0
+        completedSessions: 0,
+        lastActiveDate: new Date().toDateString()
       };
 
       const today = new Date().toDateString();
       stats.focusTime[today] = (stats.focusTime[today] || 0) + minutes;
+      stats.completedSessions = (stats.completedSessions || 0) + 1;
 
       await chrome.storage.local.set({ stats: stats });
     } catch (error) {
@@ -262,12 +350,22 @@ class BackgroundTimer {
   }
 
   showNotification(title, message) {
+    // Check if we have permission
+    if (!chrome.notifications) {
+      console.log('Notifications API not available');
+      return;
+    }
+
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: 'icons/icon48.png',
+      iconUrl: chrome.runtime.getURL('icons/icon48.png'),
       title: title,
       message: message,
       priority: 1
+    }, (notificationId) => {
+      if (chrome.runtime.lastError) {
+        console.log('Notification error:', chrome.runtime.lastError);
+      }
     });
   }
 
@@ -296,11 +394,47 @@ class BackgroundTimer {
       console.log('Error updating streak:', error);
     }
   }
+
+  // --- Focus Protection (Site Blocking) ---
+  async enableFocusProtection() {
+    if (this.settings && this.settings.focusProtection === false) return;
+
+    try {
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        enableRulesetIds: ['ruleset_1']
+      });
+      console.log('Focus Protection ENABLED');
+    } catch (e) {
+      console.log('Error enabling blocking rules:', e);
+    }
+  }
+
+  async disableFocusProtection() {
+    try {
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        disableRulesetIds: ['ruleset_1']
+      });
+      console.log('Focus Protection DISABLED');
+    } catch (e) {
+      console.log('Error disabling blocking rules:', e);
+    }
+  }
+
+  // --- Audio Logic Removed ---
+  async playAudio(type) {
+    // Audio feature removed
+    return;
+  }
+
+  async createOffscreen() {
+    // Audio removed
+    return;
+  }
 }
 
 // Initialize when extension loads
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('ProductiFlow installed - initializing background timer');
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('ProductiFlow installed/updated - initializing background timer');
 
   // Initialize default data
   chrome.storage.local.get(['settings'], (data) => {
@@ -310,24 +444,16 @@ chrome.runtime.onInstalled.addListener(() => {
           workTime: 25,
           breakTime: 5,
           longBreakTime: 15,
-          sessionsBeforeLongBreak: 4
+          sessionsBeforeLongBreak: 4,
+          dailyGoal: 240
         },
         stats: {
           focusTime: {},
           streak: 0,
-          points: 0,
-          completedTasks: 0,
           completedSessions: 0,
           lastActiveDate: new Date().toDateString()
         },
-        tasks: [],
-        achievements: [
-          { id: 'first_session', name: 'First Step', description: 'Complete your first focus session', icon: '🎯', unlocked: false, points: 10 },
-          { id: 'task_master', name: 'Task Master', description: 'Complete 10 tasks', icon: '✅', unlocked: false, points: 25 },
-          { id: 'marathon', name: 'Marathon', description: 'Focus for 10 hours total', icon: '🏃', unlocked: false, points: 50 },
-          { id: 'streak_7', name: 'Weekly Warrior', description: '7-day streak', icon: '🔥', unlocked: false, points: 100 },
-          { id: 'perfectionist', name: 'Perfectionist', description: 'Complete all tasks for a day', icon: '⭐', unlocked: false, points: 75 }
-        ]
+        tasks: []
       });
     }
   });

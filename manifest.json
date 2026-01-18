@@ -1,26 +1,57 @@
 {
   "manifest_version": 3,
   "name": "ProductiFlow",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "AI-powered productivity suite with Pomodoro, task management, and gamification",
   "permissions": [
     "storage",
     "alarms",
-    "notifications"
+    "notifications",
+    "declarativeNetRequest",
+    "offscreen"
   ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": false,
+        "path": "rules.json"
+      }
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "ProductiFlow"
+    "default_title": "ProductiFlow",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

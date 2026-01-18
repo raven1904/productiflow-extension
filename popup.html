@@ -11,10 +11,12 @@
   <div class="container">
     <!-- Header -->
     <header class="header">
-      <h1>ProductiFlow</h1>
+      <div class="header-main">
+        <h1>ProductiFlow</h1>
+        <p id="greeting" class="greeting-text">Make today amazing!</p>
+        </div>
       <div class="stats">
-        <span id="streak">🔥 0</span>
-        <span id="points">⭐ 0</span>
+        <span id="streak">🔥 0 days</span>
       </div>
     </header>
 
@@ -23,6 +25,7 @@
       <button class="tab-btn active" data-tab="pomodoro">Pomodoro</button>
       <button class="tab-btn" data-tab="tasks">Tasks</button>
       <button class="tab-btn" data-tab="analytics">Analytics</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
     </nav>
 
     <!-- Pomodoro Tab -->
@@ -41,10 +44,6 @@
         <div class="timer-settings">
           <label>Work: <input type="number" id="workTime" value="25" min="1"> min</label>
           <label>Break: <input type="number" id="breakTime" value="5" min="1"> min</label>
-        </div>
-        <div class="session-info">
-          <p>Completed Sessions: <span id="sessionCount">0</span></p>
-          <p>Focus Time Today: <span id="focusToday">0h 0m</span></p>
         </div>
       </div>
     </div>
@@ -71,26 +70,120 @@
 
     <!-- Analytics Tab -->
     <div id="analytics" class="tab-content">
+      <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
-          <h3>Today</h3>
+          <h3>Today Focus</h3>
           <p class="stat-value" id="todayFocus">0h 0m</p>
         </div>
         <div class="stat-card">
-          <h3>This Week</h3>
-          <p class="stat-value" id="weekFocus">0h 0m</p>
+          <h3>Sessions</h3>
+          <p class="stat-value" id="sessionCountDisplay">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Goal Progress</h3>
+            <p class="stat-value" id="goalProgressDisplay">0h 0m / 4h 0m</p>
+            </div>
+            <div class="stat-card">
+              <div class="card-header-row">
+                <h3>Daily Target</h3>
+                <button id="editGoalBtn" class="icon-btn-small" title="Edit Goal">✏️</button>
+              </div>
+              <p class="stat-value" id="dailyGoalTarget">4h 0m</p>
+            </div>
+            </div>
+            
+            <!-- Weekly Chart -->
+            <div class="chart-section">
+              <h3>Weekly Activity</h3>
+              <p class="chart-subtitle">Focus time (minutes) per day</p>
+              <div class="bar-chart" id="weeklyChart">
+                <!-- Bars injected by JS or static structure -->
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-0"></div><span class="day-label">S</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-1"></div><span class="day-label">M</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-2"></div><span class="day-label">T</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-3"></div><span class="day-label">W</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-4"></div><span class="day-label">T</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-5"></div><span class="day-label">F</span>
+                </div>
+                <div class="chart-bar-group">
+                  <div class="bar" id="bar-6"></div><span class="day-label">S</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Goal Edit Modal/Overlay -->
+            <div id="goalEditOverlay" class="edit-overlay hidden">
+              <div class="edit-card">
+                <h4>Set Daily Goal</h4>
+                <div class="time-inputs">
+                  <div class="input-wrapper">
+                    <input type="number" id="goalHours" min="0" max="23" placeholder="H">
+                    <label>Hrs</label>
+                  </div>
+                  <span class="separator">:</span>
+                  <div class="input-wrapper">
+                    <input type="number" id="goalMinutes" min="0" max="59" placeholder="M">
+                    <label>Min</label>
+                  </div>
+                </div>
+                <div class="edit-actions">
+                  <button id="cancelGoalEdit" class="btn-secondary">Cancel</button>
+                  <button id="saveGoalEdit" class="btn-primary">Save</button>
+                </div>
+              </div>
+            </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+            
+              <div class="settings-section">
+                <h3>Appearance</h3>
+                <div class="theme-selector">
+                  <button class="theme-btn active" data-theme="rose" style="background: #eecbc3;"></button>
+                  <button class="theme-btn" data-theme="ocean" style="background: #a2d2ff;"></button>
+                  <button class="theme-btn" data-theme="midnight" style="background: #2c3e50;"></button>
+                  <button class="theme-btn" data-theme="forest" style="background: #95d5b2;"></button>
+                </div>
+              </div>
+            
+              <div class="settings-section">
+                <h3>Behavior</h3>
+                <div class="setting-row">
+                  <span class="setting-label">Auto-start Breaks</span>
+                  <label class="switch">
+                    <input type="checkbox" id="autoStartBreaks">
+                    <span class="slider round"></span>
+                  </label>
+                </div><br>
+                <div class="setting-row">
+                  <span class="setting-label">Auto-start Next Session</span>
+                  <label class="switch">
+                    <input type="checkbox" id="autoStartNextSession">
+                    <span class="slider round"></span>
+                  </label>
+                </div><br>
+                <div class="setting-row">
+                  <span class="setting-label">Focus Mode (Block Sites)</span>
+                  <label class="switch">
+                    <input type="checkbox" id="focusProtection">
+                    <span class="slider round"></span>
+                  </label>
         </div>
-        <div class="stat-card">
-          <h3>Productivity</h3>
-          <p class="stat-value" id="productivityScore">0%</p>
-        </div>
-      </div>
-      <div class="achievements">
-        <h3>Achievements</h3>
-        <div id="achievementsList"></div>
       </div>
     </div>
-  </div>
   <script src="popup.js"></script>
 </body>
 

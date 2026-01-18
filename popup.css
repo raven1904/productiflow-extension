@@ -8,7 +8,8 @@
   /* Background Base */
   --teal: #99C1B9;
   /* Break Mode / Success */
-  --purple: #8E7DBE;
+  --purple: #6D5B9E;
+    /* Darkened from #8E7DBE for text contrast */
   /* Headers / Active States */
 
   /* --- Neutrals & Utils --- */
@@ -227,12 +228,15 @@ body {
   gap: 30px;
   justify-content: center;
   margin-bottom: 15px;
+  align-items: center;
 }
 
 .timer-settings label {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  gap: 8px;
+    /* Space between text and input */
   font-size: 0.8em;
   color: var(--text-muted);
   font-weight: 700;
@@ -245,7 +249,8 @@ body {
   border: 2px solid transparent;
   border-radius: var(--radius-sm);
   text-align: center;
-  margin-top: 5px;
+  margin-top: 0;
+    /* Removed margin */
   background: var(--white);
   color: var(--purple);
   font-weight: 800;
@@ -668,4 +673,538 @@ body {
 button:focus {
   outline: 2px solid rgba(255, 255, 255, 0.6);
   outline-offset: 2px;
+}
+/* Empty state for tasks */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-md);
+  margin-top: 20px;
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.empty-state small {
+  font-size: 0.85em;
+}
+
+/* Due date styling */
+.due-date {
+  background: rgba(142, 125, 190, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  color: var(--purple);
+}
+
+/* Long break indicator */
+.long-break-indicator {
+  display: inline-block;
+  background: var(--peach);
+  color: #333;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+/* Responsive improvements */
+@media (max-width: 380px) {
+  body {
+    width: 350px;
+  }
+
+  .timer-settings {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .task-input {
+    flex-direction: column;
+  }
+
+  .task-input input,
+  .task-input select,
+  .task-input button {
+    width: 100%;
+  }
+}
+
+/* Loading animation */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--beige);
+  border-top: 2px solid var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: var(--purple);
+  color: var(--white);
+  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.8em;
+  pointer-events: none;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Achievement progress bars */
+.achievement-progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.achievement-progress-bar {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* --- Advanced Settings --- */
+.advanced-settings {
+  background: rgba(255, 255, 255, 0.4);
+  padding: 15px;
+  border-radius: var(--radius-md);
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setting-label {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Switch Component */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked+.slider {
+  background-color: var(--purple);
+}
+
+input:focus+.slider {
+  box-shadow: 0 0 1px var(--purple);
+}
+
+input:checked+.slider:before {
+  transform: translateX(20px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Header Improvements */
+.header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Theme Classes for Popup */
+/* Ocean */
+body.theme-ocean {
+  background-color: #E6F3F8;
+  --rose: #0077B6;
+  /* Accessible Blue */
+  --purple: #023E8A;
+  /* Darker Blue */
+  --peach: #44CF6C;
+  --teal: #0096C7;
+  /* Medium Blue */
+  --text-main: #0f172a;
+}
+
+/* For "Ocean" we remap rose/purple to blue tones */
+
+/* Midnight */
+/* Midnight (Dark) - Defined at bottom of file */
+
+/* Forest */
+body.theme-forest {
+  background-color: #F0F7F4;
+  --rose: #2D6A4F;
+  --purple: #1B4332;
+  --teal: #40916C;
+  /* Darkened for accessibility (was #52B788) */
+  --peach: #D8F3DC;
+}
+
+/* Card Header with Edit Button */
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.icon-btn-small {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.6;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.icon-btn-small:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Edit Overlay */
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.edit-overlay.hidden {
+  display: none;
+}
+
+.edit-card {
+  background: var(--surface);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 80%;
+  text-align: center;
+}
+
+.edit-card h4 {
+  margin-bottom: 15px;
+  color: var(--text-main);
+}
+
+.time-inputs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-wrapper input {
+  width: 50px;
+  padding: 8px;
+  text-align: center;
+  border: 2px solid var(--peach);
+  border-radius: 8px;
+  font-size: 1.1rem;
+  background: var(--bg);
+  color: var(--text-main);
+}
+
+.input-wrapper label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.separator {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-top: -15px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text-main);
+  border: 1px solid var(--text-muted);
+}
+
+/* Analytics Charts */
+.chart-section {
+  margin-top: 20px;
+  background: var(--surface);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+
+.chart-section h3 {
+  font-size: 1.1em;
+  margin-bottom: 5px;
+  color: var(--text-main);
+}
+
+.chart-subtitle {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-bottom: 15px;
+}
+
+.bar-chart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  /* Bars grow from bottom */
+  height: 150px;
+  padding-top: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.bar {
+  width: 12px;
+  background: var(--purple);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+  min-height: 4px;
+  /* Always show a tiny bit */
+  opacity: 0.8;
+}
+
+.bar:hover {
+  opacity: 1;
+  transform: scaleX(1.1);
+}
+
+.day-label {
+  margin-top: 8px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Settings Tab Styles */
+.settings-section {
+  background: rgba(255, 255, 255, 0.6);
+  padding: 15px;
+  border-radius: var(--radius-md);
+  margin-bottom: 15px;
+}
+
+.settings-section h3 {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+}
+
+.setting-item {
+  margin-bottom: 15px;
+}
+
+.setting-item label {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: var(--text-main);
+}
+
+.setting-item input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-main);
+}
+
+/* Theme Selector */
+.theme-selector {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.theme-btn {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.theme-btn:hover {
+  transform: scale(1.1);
+}
+
+.theme-btn.active {
+  border-color: var(--text-main);
+  transform: scale(1.1);
+}
+
+/* Header Updates */
+.header-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.greeting-text {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Ensure remove settings padding if it affects layout */
+/* ...other styles remain... */
+
+/* Midnight Theme */
+.theme-midnight {
+  --beige: #0f172a;
+  /* Dark Background */
+  --text-main: #f8fafc;
+  /* Light Text */
+  --text-muted: #cbd5e1;
+  /* Light Grey (WCAG AA) */
+  --rose: #38bdf8;
+  /* Light Blue Accent */
+  --purple: #818cf8;
+  /* Indigo Accent */
+  --peach: #1e293b;
+  /* Dark Secondary */
+  --teal: #2dd4bf;
+  /* Teal Accent */
+  --white: #1e293b;
+  /* Card Background (Dark) */
+  --bg: #0f172a;
+  /* Explicit BG variable */
+  background-color: var(--beige) !important;
+  color: var(--text-main) !important;
 }

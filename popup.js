@@ -19,7 +19,23 @@ class ProductiFlow {
     this.setupEventListeners();
     this.renderTasks();
     this.updateStats();
+    this.updateStats();
     this.updateTimerDisplay();
+
+    // Settings Button removed
+
+    // Apply Theme & Set Active Button
+    if (this.settings && this.settings.theme) {
+      this.applyTheme(this.settings.theme);
+      const activeBtn = document.querySelector(`.theme-btn[data-theme="${this.settings.theme}"]`);
+      if (activeBtn) {
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        activeBtn.classList.add('active');
+      }
+    }
+
+    // Set Greeting
+    this.setGreeting();
 
     // Test background connection and sync state
     await this.testBackgroundConnection();
@@ -33,7 +49,7 @@ class ProductiFlow {
         this.timeLeft = response.timeLeft;
         this.isRunning = response.isRunning;
         this.isBreak = response.isBreak;
-        this.sessionCount = response.sessionCount;
+        this.sessionCount = response.sessionCount || 0;
         this.updateTimerDisplay();
         console.log('Background connection established');
       }
@@ -46,13 +62,29 @@ class ProductiFlow {
     this.setupBackgroundListener();
   }
 
+  setGreeting() {
+    const hours = new Date().getHours();
+    let greeting = 'Good Morning';
+
+    if (hours >= 12 && hours < 17) {
+      greeting = 'Good Afternoon';
+    } else if (hours >= 17) {
+      greeting = 'Good Evening';
+    }
+
+    const greetingEl = document.getElementById('greeting');
+    if (greetingEl) {
+      greetingEl.textContent = greeting;
+    }
+  }
+
   setupBackgroundListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.type === 'timerUpdate') {
         this.timeLeft = request.timeLeft;
         this.isRunning = request.isRunning;
         this.isBreak = request.isBreak;
-        this.sessionCount = request.sessionCount;
+        this.sessionCount = request.sessionCount || 0;
         this.updateTimerDisplay();
       }
 
@@ -87,19 +119,19 @@ class ProductiFlow {
         workTime: 25,
         breakTime: 5,
         longBreakTime: 15,
-        sessionsBeforeLongBreak: 4
+        sessionsBeforeLongBreak: 4,
+        dailyGoal: 240 // 4 hours in minutes
       };
 
       this.tasks = data.tasks || [];
       this.stats = data.stats || {
         focusTime: {},
         streak: 0,
-        points: 0,
         completedTasks: 0,
-        completedSessions: 0
+        completedSessions: 0,
+        lastActiveDate: new Date().toDateString()
       };
 
-      this.achievements = data.achievements || this.getDefaultAchievements();
       this.timeLeft = this.settings.workTime * 60;
 
     } catch (error) {
@@ -113,28 +145,18 @@ class ProductiFlow {
       workTime: 25,
       breakTime: 5,
       longBreakTime: 15,
-      sessionsBeforeLongBreak: 4
+      sessionsBeforeLongBreak: 4,
+      dailyGoal: 240
     };
     this.tasks = [];
     this.stats = {
       focusTime: {},
       streak: 0,
-      points: 0,
       completedTasks: 0,
-      completedSessions: 0
+      completedSessions: 0,
+      lastActiveDate: new Date().toDateString()
     };
-    this.achievements = this.getDefaultAchievements();
     this.timeLeft = this.settings.workTime * 60;
-  }
-
-  getDefaultAchievements() {
-    return [
-      { id: 'first_session', name: 'First Step', description: 'Complete your first focus session', icon: '🎯', unlocked: false, points: 10 },
-      { id: 'task_master', name: 'Task Master', description: 'Complete 10 tasks', icon: '✅', unlocked: false, points: 25 },
-      { id: 'marathon', name: 'Marathon', description: 'Focus for 10 hours total', icon: '🏃', unlocked: false, points: 50 },
-      { id: 'streak_7', name: 'Weekly Warrior', description: '7-day streak', icon: '🔥', unlocked: false, points: 100 },
-      { id: 'perfectionist', name: 'Perfectionist', description: 'Complete all tasks for a day', icon: '⭐', unlocked: false, points: 75 }
-    ];
   }
 
   setupEventListeners() {
@@ -153,11 +175,67 @@ class ProductiFlow {
 
     // Timer settings
     document.getElementById('workTime').addEventListener('change', (e) => {
-      this.updateSetting('workTime', parseInt(e.target.value));
+      const value = parseInt(e.target.value);
+      if (value > 0) {
+        this.updateSetting('workTime', value);
+      }
     });
     document.getElementById('breakTime').addEventListener('change', (e) => {
-      this.updateSetting('breakTime', parseInt(e.target.value));
+      const value = parseInt(e.target.value);
+      if (value > 0) {
+        this.updateSetting('breakTime', value);
+      }
     });
+
+    // Advanced Settings
+    const setupCheckbox = (id, key) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.checked = this.settings[key];
+        el.addEventListener('change', (e) => {
+          this.updateSetting(key, e.target.checked);
+        });
+      }
+    };
+
+    setupCheckbox('autoStartBreaks', 'autoStartBreaks');
+    setupCheckbox('autoStartNextSession', 'autoStartNextSession');
+    setupCheckbox('focusProtection', 'focusProtection');
+
+    // Goal Edit Listeners
+    const editBtn = document.getElementById('editGoalBtn');
+    const overlay = document.getElementById('goalEditOverlay');
+    const cancelBtn = document.getElementById('cancelGoalEdit');
+    const saveBtn = document.getElementById('saveGoalEdit');
+
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        const currentMinutes = this.settings.dailyGoal || 240;
+        const h = Math.floor(currentMinutes / 60);
+        const m = currentMinutes % 60;
+        document.getElementById('goalHours').value = h;
+        document.getElementById('goalMinutes').value = m;
+        overlay.classList.remove('hidden');
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        overlay.classList.add('hidden');
+      });
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const h = parseInt(document.getElementById('goalHours').value) || 0;
+        const m = parseInt(document.getElementById('goalMinutes').value) || 0;
+        const total = (h * 60) + m;
+        this.updateSetting('dailyGoal', total);
+        // Immediately update display
+        this.updateStats(); // Use the main function to handle new format
+        overlay.classList.add('hidden');
+      });
+    }
 
     // Task management
     document.getElementById('addTask').addEventListener('click', () => this.addTask());
@@ -180,6 +258,30 @@ class ProductiFlow {
     });
     document.getElementById('taskList').addEventListener('change', (e) => {
       this.handleTaskListChange(e);
+    });
+
+    // Profile Settings
+    const nameInput = document.getElementById('displayName');
+    if (nameInput) {
+      if (this.profile && this.profile.displayName) nameInput.value = this.profile.displayName;
+      nameInput.addEventListener('change', (e) => {
+        if (!this.profile) this.profile = {};
+        this.profile.displayName = e.target.value;
+        this.saveData();
+      });
+    }
+
+    // Theme Selector
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const theme = e.target.dataset.theme;
+        this.applyTheme(theme);
+        this.updateSetting('theme', theme);
+
+        // Update active state
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+      });
     });
   }
 
@@ -210,7 +312,10 @@ class ProductiFlow {
     }
   }
 
+  // ====== TIMER METHODS - SINGLE IMPLEMENTATION ======
   async startTimer() {
+    this.animateButton('startTimer');
+
     this.isRunning = true;
     this.isBreak = false;
     this.timeLeft = this.settings.workTime * 60;
@@ -226,11 +331,16 @@ class ProductiFlow {
   }
 
   async startBreakTimer() {
+    this.animateButton('startBreak');
+
     this.isRunning = true;
     this.isBreak = true;
-    const breakTime = this.sessionCount % this.settings.sessionsBeforeLongBreak === 0
+
+    // Calculate break type
+    const breakTime = (this.sessionCount % this.settings.sessionsBeforeLongBreak === 0 && this.sessionCount > 0)
       ? this.settings.longBreakTime
       : this.settings.breakTime;
+
     this.timeLeft = breakTime * 60;
 
     try {
@@ -257,13 +367,13 @@ class ProductiFlow {
         this.updateTimerDisplay();
 
         if (this.timeLeft <= 0) {
-          this.handleSessionComplete(
-            this.isBreak ? this.settings.breakTime : this.settings.workTime,
-            this.isBreak
-          );
+          const completedMinutes = this.isBreak ?
+            (this.isBreak ? this.timeLeft : this.settings.workTime) : this.settings.workTime;
+          this.handleSessionComplete(completedMinutes, this.isBreak);
           this.isRunning = false;
           if (this.currentTimer) {
             clearInterval(this.currentTimer);
+            this.currentTimer = null;
           }
         }
       }
@@ -271,6 +381,8 @@ class ProductiFlow {
   }
 
   async pauseTimer() {
+    this.animateButton('pauseTimer');
+
     this.isRunning = false;
     try {
       await this.sendToBackground({ type: 'pauseTimer' });
@@ -281,6 +393,8 @@ class ProductiFlow {
   }
 
   async resetTimer() {
+    this.animateButton('resetTimer');
+
     this.isRunning = false;
     this.isBreak = false;
     this.timeLeft = this.settings.workTime * 60;
@@ -296,10 +410,9 @@ class ProductiFlow {
     if (!wasBreak) {
       this.sessionCount++;
       this.recordFocusTime(duration);
-      this.awardPoints(5);
       this.showCustomNotification(
         '🎉 Focus Session Complete!',
-        'Great job! Take a break when you are ready.',
+        wasBreak ? 'Break time is over!' : 'Great job! Take a break when you are ready.',
         'success'
       );
     } else {
@@ -311,7 +424,6 @@ class ProductiFlow {
     }
 
     this.updateStats();
-    this.checkAchievements();
     this.saveData();
   }
 
@@ -321,44 +433,39 @@ class ProductiFlow {
 
     document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
     document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
-    document.getElementById('sessionCount').textContent = this.sessionCount;
+    // Session Count removed from Pomodoro tab
 
-    // Update session type
+
+    // Update session type and styling
     const timerDisplay = document.querySelector('.timer-display');
     const sessionInfo = document.getElementById('sessionType');
-
-    if (this.isBreak) {
-      timerDisplay.className = 'timer-display break-mode';
-      sessionInfo.textContent = 'Break Time 🍃';
-    } else {
-      timerDisplay.className = 'timer-display work-mode';
-      sessionInfo.textContent = 'Focus Time 🎯';
-    }
-
-    this.updateButtonStates();
-  }
-
-  updateButtonStates() {
     const startBtn = document.getElementById('startTimer');
     const breakBtn = document.getElementById('startBreak');
 
     if (this.isBreak) {
+      timerDisplay.className = 'timer-display break-mode';
+      sessionInfo.textContent = this.timeLeft === this.settings.longBreakTime * 60
+        ? 'Long Break 🌴'
+        : 'Break Time 🍃';
       startBtn.disabled = true;
-      startBtn.style.opacity = '0.6';
       breakBtn.disabled = false;
-      breakBtn.style.opacity = '1';
     } else {
+      timerDisplay.className = 'timer-display work-mode';
+      sessionInfo.textContent = 'Focus Time 🎯';
       startBtn.disabled = false;
-      startBtn.style.opacity = '1';
       breakBtn.disabled = true;
-      breakBtn.style.opacity = '0.6';
     }
+
+    // Update button styles
+    startBtn.style.opacity = startBtn.disabled ? '0.6' : '1';
+    breakBtn.style.opacity = breakBtn.disabled ? '0.6' : '1';
   }
 
   recordFocusTime(minutes) {
     const today = new Date().toDateString();
     this.stats.focusTime[today] = (this.stats.focusTime[today] || 0) + minutes;
     this.updateStreak();
+    this.saveData();
   }
 
   updateStreak() {
@@ -384,7 +491,8 @@ class ProductiFlow {
   addTask() {
     const input = document.getElementById('taskInput');
     const priority = document.getElementById('prioritySelect').value;
-    const dueDate = document.getElementById('dueDate').value;
+    const dueDateInput = document.getElementById('dueDate');
+    const dueDate = dueDateInput.value;
 
     if (input.value.trim()) {
       const task = {
@@ -401,7 +509,7 @@ class ProductiFlow {
       this.renderTasks();
 
       input.value = '';
-      document.getElementById('dueDate').value = '';
+      dueDateInput.value = '';
       input.focus();
 
       this.showCustomNotification('📝 Task Added!', 'New task created successfully!', 'success');
@@ -411,14 +519,21 @@ class ProductiFlow {
   toggleTask(taskId) {
     const task = this.tasks.find(t => t.id === taskId);
     if (task) {
+      const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+
+      // Add completion animation
+      if (taskElement && !task.completed) {
+        taskElement.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          taskElement.style.transform = '';
+        }, 150);
+      }
+
       task.completed = !task.completed;
 
       if (task.completed) {
         this.stats.completedTasks++;
-        const pointsEarned = this.getTaskPoints(task.priority);
-        this.awardPoints(pointsEarned);
-        this.checkAchievements();
-        this.showCustomNotification('✅ Task Completed!', `You earned ${pointsEarned} points!`, 'success');
+        this.showCustomNotification('✅ Task Completed!', 'Great job!', 'success');
       } else {
         this.stats.completedTasks = Math.max(0, this.stats.completedTasks - 1);
       }
@@ -464,10 +579,14 @@ class ProductiFlow {
     }
 
     if (filteredTasks.length === 0) {
+      const message = filter === 'completed'
+        ? 'Complete some tasks to see them here!'
+        : 'Add a task to get started!';
+
       taskList.innerHTML = `
-        <div class="empty-state">
-          <p>No tasks found</p>
-          <small>${filter === 'completed' ? 'Complete some tasks to see them here!' : 'Add a task to get started!'}</small>
+        <div class="empty-state" style="text-align: center; padding: 40px; color: #999;">
+          <p style="margin-bottom: 8px;">No tasks found</p>
+          <small>${message}</small>
         </div>
       `;
       return;
@@ -493,27 +612,53 @@ class ProductiFlow {
   updateStats() {
     const today = new Date().toDateString();
     const todayFocus = this.stats.focusTime[today] || 0;
-    const weekFocus = this.getWeeklyFocus();
 
-    document.getElementById('focusToday').textContent = this.formatTime(todayFocus);
-    document.getElementById('todayFocus').textContent = this.formatTime(todayFocus);
-    document.getElementById('weekFocus').textContent = this.formatTime(weekFocus);
-    document.getElementById('streak').textContent = `🔥 ${this.stats.streak || 0}`;
-    document.getElementById('points').textContent = `⭐ ${this.stats.points || 0}`;
+    // Update simple stats
+    const tEl = document.getElementById('todayFocus');
+    if (tEl) tEl.textContent = this.formatTime(todayFocus);
+    // Removed duplicate IDs from previous steps if any, ensuring safety
 
-    const productivityScore = Math.min(100, Math.round((this.stats.completedTasks / Math.max(this.tasks.length, 1)) * 100));
-    document.getElementById('productivityScore').textContent = `${productivityScore}%`;
+    document.getElementById('sessionCountDisplay').textContent = this.stats.completedSessions || 0;
+    document.getElementById('streak').textContent = `🔥 ${this.stats.streak || 0} days`;
+
+    // Goal Progress
+    const dailyGoal = this.settings.dailyGoal || 240;
+    const goalFormatted = this.formatTime(dailyGoal);
+    const todayFormatted = this.formatTime(todayFocus);
+
+    document.getElementById('goalProgressDisplay').textContent = `${todayFormatted} / ${goalFormatted}`;
+    document.getElementById('dailyGoalTarget').textContent = goalFormatted;
+
+    // Render Weekly Chart
+    this.renderWeeklyChart();
   }
 
-  getWeeklyFocus() {
+  renderWeeklyChart() {
     const today = new Date();
-    let total = 0;
+    const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - currentDay); // Go back to Sunday
+
+    const weeklyData = [];
+    let maxVal = 10; // Min scale
+
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      total += this.stats.focusTime[date.toDateString()] || 0;
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const val = this.stats.focusTime[d.toDateString()] || 0;
+      weeklyData.push(val);
+      if (val > maxVal) maxVal = val;
     }
-    return total;
+
+    weeklyData.forEach((val, index) => {
+      const bar = document.getElementById(`bar-${index}`);
+      if (bar) {
+        const heightIdx = (val / maxVal) * 100; // Percentage
+        const height = Math.min(100, Math.max(5, heightIdx));
+        bar.style.height = `${height}%`;
+        bar.title = `${this.formatTime(val)}`;
+      }
+    });
   }
 
   formatTime(minutes) {
@@ -524,70 +669,21 @@ class ProductiFlow {
 
   updateAnalytics() {
     this.updateStats();
-    this.renderAchievements();
+    // Achievements removed
   }
 
-  renderAchievements() {
-    const list = document.getElementById('achievementsList');
-    list.innerHTML = this.achievements.map(achievement => `
-      <div class="achievement-item ${achievement.unlocked ? '' : 'achievement-locked'}">
-        <span class="achievement-icon">${achievement.icon}</span>
-        <div>
-          <div><strong>${achievement.name}</strong></div>
-          <div>${achievement.description}</div>
-          <div><small>${achievement.points} points</small></div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  awardPoints(points) {
-    this.stats.points = (this.stats.points || 0) + points;
-    this.updateStats();
-    this.saveData();
-  }
-
-  checkAchievements() {
-    const today = new Date().toDateString();
-    const todayTasks = this.tasks.filter(task =>
-      new Date(task.createdAt).toDateString() === today
-    );
-    const completedToday = todayTasks.filter(task => task.completed);
-
-    if (this.sessionCount > 0 && !this.achievements[0].unlocked) {
-      this.unlockAchievement('first_session');
-    }
-    if (this.stats.completedTasks >= 10 && !this.achievements[1].unlocked) {
-      this.unlockAchievement('task_master');
-    }
-    const totalFocus = Object.values(this.stats.focusTime).reduce((a, b) => a + b, 0);
-    if (totalFocus >= 600 && !this.achievements[2].unlocked) {
-      this.unlockAchievement('marathon');
-    }
-    if (this.stats.streak >= 7 && !this.achievements[3].unlocked) {
-      this.unlockAchievement('streak_7');
-    }
-    if (todayTasks.length > 0 && completedToday.length === todayTasks.length && !this.achievements[4].unlocked) {
-      this.unlockAchievement('perfectionist');
-    }
-  }
-
-  unlockAchievement(achievementId) {
-    const achievement = this.achievements.find(a => a.id === achievementId);
-    if (achievement && !achievement.unlocked) {
-      achievement.unlocked = true;
-      this.awardPoints(achievement.points);
-      this.showCustomNotification(
-        '🏆 Achievement Unlocked!',
-        `${achievement.name}: ${achievement.description}`,
-        'achievement'
-      );
-      this.saveData();
-    }
-  }
+  // Points and Achievements methods removed
 
   updateSetting(key, value) {
     this.settings[key] = value;
+
+    // Update UI inputs
+    if (key === 'workTime') {
+      document.getElementById('workTime').value = value;
+    } else if (key === 'breakTime') {
+      document.getElementById('breakTime').value = value;
+  }
+
     this.saveData();
 
     // Update background if available
@@ -595,7 +691,8 @@ class ProductiFlow {
       .catch(() => { }); // Ignore errors
 
     if (!this.isRunning) {
-      this.resetTimer();
+      this.timeLeft = this.settings.workTime * 60;
+      this.updateTimerDisplay();
     }
   }
 
@@ -647,6 +744,7 @@ class ProductiFlow {
   }
 
   escapeHtml(unsafe) {
+    if (!unsafe) return '';
     return unsafe
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -655,78 +753,6 @@ class ProductiFlow {
       .replace(/'/g, "&#039;");
   }
 
-  // Enhanced button click handler with animations
-  async startTimer() {
-    // Add click animation
-    this.animateButton('startTimer');
-
-    this.isRunning = true;
-    this.isBreak = false;
-    this.timeLeft = this.settings.workTime * 60;
-
-    try {
-      await this.sendToBackground({ type: 'startTimer' });
-    } catch (error) {
-      console.log('Background unavailable, using local timer');
-      this.startLocalTimer();
-    }
-
-    this.updateTimerDisplay();
-  }
-
-  async startBreakTimer() {
-    // Add click animation
-    this.animateButton('startBreak');
-
-    this.isRunning = true;
-    this.isBreak = true;
-    const breakTime = this.sessionCount % this.settings.sessionsBeforeLongBreak === 0
-      ? this.settings.longBreakTime
-      : this.settings.breakTime;
-    this.timeLeft = breakTime * 60;
-
-    try {
-      await this.sendToBackground({
-        type: 'startBreak',
-        breakTime: breakTime
-      });
-    } catch (error) {
-      console.log('Background unavailable, using local timer');
-      this.startLocalTimer();
-    }
-
-    this.updateTimerDisplay();
-  }
-
-  async pauseTimer() {
-    // Add click animation
-    this.animateButton('pauseTimer');
-
-    this.isRunning = false;
-    try {
-      await this.sendToBackground({ type: 'pauseTimer' });
-    } catch (error) {
-      // Ignore - we already updated local state
-    }
-    this.updateTimerDisplay();
-  }
-
-  async resetTimer() {
-    // Add click animation
-    this.animateButton('resetTimer');
-
-    this.isRunning = false;
-    this.isBreak = false;
-    this.timeLeft = this.settings.workTime * 60;
-    try {
-      await this.sendToBackground({ type: 'resetTimer' });
-    } catch (error) {
-      // Ignore - we already updated local state
-    }
-    this.updateTimerDisplay();
-  }
-
-  // New method for button animations
   animateButton(buttonId) {
     const button = document.getElementById(buttonId);
     if (button) {
@@ -737,71 +763,10 @@ class ProductiFlow {
     }
   }
 
-  // Enhanced task completion with animation
-  toggleTask(taskId) {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (task) {
-      const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-
-      // Add completion animation
-      if (taskElement && !task.completed) {
-        taskElement.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-          taskElement.style.transform = '';
-        }, 150);
-      }
-
-      task.completed = !task.completed;
-
-      if (task.completed) {
-        this.stats.completedTasks++;
-        const pointsEarned = this.getTaskPoints(task.priority);
-        this.awardPoints(pointsEarned);
-        this.checkAchievements();
-        this.showCustomNotification('✅ Task Completed!', `You earned ${pointsEarned} points!`, 'success');
-      } else {
-        this.stats.completedTasks = Math.max(0, this.stats.completedTasks - 1);
-      }
-
-      this.saveData();
-      this.renderTasks(this.getCurrentFilter());
-      this.updateStats();
-    }
-  }
-
-  // Enhanced tab switching with animation
-  switchTab(tabName) {
-    const previousTab = document.querySelector('.tab-content.active');
-    const previousButton = document.querySelector('.tab-btn.active');
-
-    if (previousTab) {
-      previousTab.style.opacity = '0';
-      previousTab.style.transform = 'translateX(-10px)';
-    }
-
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
-    document.getElementById(tabName).classList.add('active');
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-    const newTab = document.getElementById(tabName);
-    const newButton = document.querySelector(`[data-tab="${tabName}"]`);
-
-    // Animate new tab in
-    setTimeout(() => {
-      newTab.style.opacity = '1';
-      newTab.style.transform = 'translateX(0)';
-
-      // Add button animation
-      newButton.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        newButton.style.transform = '';
-      }, 150);
-    }, 50);
-
-    if (tabName === 'analytics') {
-      this.updateAnalytics();
+  applyTheme(theme) {
+    document.body.className = '';
+    if (theme && theme !== 'rose') {
+      document.body.classList.add(`theme-${theme}`);
     }
   }
 }
