@@ -89,7 +89,7 @@ class ProductiFlow {
       }
 
       if (request.type === 'sessionComplete') {
-        this.handleSessionComplete(request.duration, request.isBreak);
+        this.handleSessionComplete(request.duration, request.isBreak, request.stats);
       }
 
       sendResponse({ received: true });
@@ -406,10 +406,15 @@ class ProductiFlow {
     this.updateTimerDisplay();
   }
 
-  handleSessionComplete(duration, wasBreak) {
+  handleSessionComplete(duration, wasBreak, stats) {
     if (!wasBreak) {
       this.sessionCount++;
-      this.recordFocusTime(duration);
+      // Stats are now updated by background and passed here
+      if (stats) {
+        this.stats = stats;
+      } else {
+        this.recordFocusTime(duration);
+      }
       this.showCustomNotification(
         '🎉 Focus Session Complete!',
         wasBreak ? 'Break time is over!' : 'Great job! Take a break when you are ready.',
@@ -424,7 +429,10 @@ class ProductiFlow {
     }
 
     this.updateStats();
-    this.saveData();
+    // No need to save data here as background already did it found stats were passed
+    if (!stats) {
+      this.saveData();
+    }
   }
 
   updateTimerDisplay() {
@@ -640,7 +648,7 @@ class ProductiFlow {
     startOfWeek.setDate(today.getDate() - currentDay); // Go back to Sunday
 
     const weeklyData = [];
-    let maxVal = 10; // Min scale
+    let maxVal = 60; // Min scale: 1 hour
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);

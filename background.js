@@ -227,7 +227,7 @@ class BackgroundTimer {
     }, 1000);
   }
 
-  completeSession() {
+  async completeSession() {
     console.log('Session completed');
     this.isRunning = false;
     // Audio removed
@@ -237,9 +237,10 @@ class BackgroundTimer {
       ? (this.isBreak ? (this.timeLeft + this.getSessionDuration()) / 60 : this.settings.breakTime)
       : this.settings.workTime;
 
+    let updatedStats = null;
     if (!this.isBreak) {
       this.sessionCount++;
-      this.recordFocusTime(sessionDuration);
+      updatedStats = await this.recordFocusTime(sessionDuration);
       this.disableFocusProtection(); // Break starting or session ended
     }
 
@@ -250,7 +251,7 @@ class BackgroundTimer {
     );
 
     // Broadcast completion (UI handles points/awards)
-    this.broadcastSessionCompleteSafe(sessionDuration);
+    this.broadcastSessionCompleteSafe(sessionDuration, updatedStats);
 
     // Auto-Advance Logic
     if (!this.isBreak) {
@@ -292,12 +293,13 @@ class BackgroundTimer {
     });
   }
 
-  broadcastSessionCompleteSafe(duration) {
+  broadcastSessionCompleteSafe(duration, stats) {
     chrome.runtime.sendMessage({
       type: 'sessionComplete',
       duration: duration,
       isBreak: this.isBreak,
-      sessionCount: this.sessionCount
+      sessionCount: this.sessionCount,
+      stats: stats
     }).catch(() => {
       // Normal - popup is closed
     });
@@ -344,8 +346,10 @@ class BackgroundTimer {
       stats.completedSessions = (stats.completedSessions || 0) + 1;
 
       await chrome.storage.local.set({ stats: stats });
+      return stats; // Return updated stats
     } catch (error) {
       console.log('Error recording focus time:', error);
+      return null;
     }
   }
 
